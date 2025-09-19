@@ -57,16 +57,16 @@ public class LoginView extends JFrame {
         setVisible(true);
     }
     
-    // Dentro da classe LoginView.java
     private void lidarComLogin() {
         String login = campoLogin.getText();
         String senha = new String(campoSenha.getPassword());
 
         UsuarioDAO usuarioDAO = new UsuarioDAO();
         try {
-            Usuario usuarioAutenticado = usuarioDAO.buscarPorLogin(login);
+            // CORREÇÃO: Chamada para o método 'autenticar' na DAO
+            Usuario usuarioAutenticado = usuarioDAO.autenticar(login, senha);
             
-            if (usuarioAutenticado != null && usuarioAutenticado.getSenha().equals(senha)) {
+            if (usuarioAutenticado != null) {
                 // Login bem-sucedido: abre a nova tela e fecha a atual
                 JOptionPane.showMessageDialog(this, "Bem-vindo(a), " + usuarioAutenticado.getNomeCompleto() + "!");
                 

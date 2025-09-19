@@ -48,6 +48,7 @@ public class MainFrame extends JFrame {
         // Adiciona os painéis de navegação ao CardLayout
         contentPanel.add(new DashboardView(), "Dashboard");
         contentPanel.add(new ProjetoView(this), "Projetos");
+        contentPanel.add(new EquipeView(this), "Equipes");
 
         // Exibe o painel de controle assim que a janela é criada
         cardLayout.show(contentPanel, "Dashboard");

@@ -1,163 +1,189 @@
 package br.com.promanage.view;
 
+import br.com.promanage.dao.EquipeDAO;
 import br.com.promanage.dao.ProjetoDAO;
 import br.com.promanage.dao.UsuarioDAO;
-import br.com.promanage.dao.EquipeDAO;
 import br.com.promanage.model.Equipe;
 import br.com.promanage.model.Projeto;
 import br.com.promanage.model.Usuario;
-import com.toedter.calendar.JDateChooser;
 
 import javax.swing.*;
 import java.awt.*;
 import java.sql.SQLException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 public class ProjetoFormView extends JDialog {
 
+    private final MainFrame mainFrame;
+    private final ProjetoView projetoView; // Referência para a tela principal de projetos
+    private Projeto projeto;
+
     private JTextField campoNome;
-    private JTextField campoDescricao;
-    private JDateChooser campoDataInicio;
-    private JDateChooser campoDataTerminoPrevista; // Nome da variável ajustado
-    private JComboBox<String> comboStatus;
-    private JComboBox<Usuario> comboGerente;
-    private JComboBox<Equipe> comboEquipe;
+    private JTextArea campoDescricao;
+    private JFormattedTextField campoDataInicio;
+    private JFormattedTextField campoDataTermino;
+    private JComboBox<String> campoStatus;
+    private JComboBox<Usuario> campoGerente;
+    private JComboBox<Equipe> campoEquipe;
     private JButton botaoSalvar;
     private JButton botaoCancelar;
 
-    private Projeto projetoParaEdicao;
+    // Construtor para NOVO projeto
+    public ProjetoFormView(MainFrame mainFrame, ProjetoView projetoView) {
+        this(mainFrame, projetoView, null);
+    }
 
-    public ProjetoFormView(JFrame parent) {
-        super(parent, "Novo Projeto", true);
-        setSize(450, 450);
-        setLocationRelativeTo(parent);
-
-        JPanel painel = new JPanel(new GridBagLayout());
-        painel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-
-        gbc.gridx = 0; gbc.gridy = 0; painel.add(new JLabel("Nome:"), gbc);
-        gbc.gridx = 1; campoNome = new JTextField(20); painel.add(campoNome, gbc);
-
-        gbc.gridx = 0; gbc.gridy = 1; painel.add(new JLabel("Descrição:"), gbc);
-        gbc.gridx = 1; campoDescricao = new JTextField(20); painel.add(campoDescricao, gbc);
+    // Construtor para EDIÇÃO de projeto
+    public ProjetoFormView(MainFrame mainFrame, ProjetoView projetoView, Projeto projeto) {
+        super(mainFrame, "Cadastro de Projeto", true);
+        this.mainFrame = mainFrame;
+        this.projetoView = projetoView;
+        this.projeto = projeto;
         
-        gbc.gridx = 0; gbc.gridy = 2; painel.add(new JLabel("Data Início:"), gbc);
-        gbc.gridx = 1; campoDataInicio = new JDateChooser(); painel.add(campoDataInicio, gbc);
-        
-        gbc.gridx = 0; gbc.gridy = 3; painel.add(new JLabel("Data Término Prevista:"), gbc);
-        gbc.gridx = 1; campoDataTerminoPrevista = new JDateChooser(); painel.add(campoDataTerminoPrevista, gbc);
+        // Configurações do diálogo
+        setSize(400, 500);
+        setLocationRelativeTo(mainFrame);
+        setLayout(new BorderLayout(10, 10));
 
-        gbc.gridx = 0; gbc.gridy = 4; painel.add(new JLabel("Status:"), gbc);
-        gbc.gridx = 1; comboStatus = new JComboBox<>(new String[]{"Em Andamento", "Concluído", "Atrasado"});
-        painel.add(comboStatus, gbc);
+        // Painel de formulário
+        JPanel formPanel = new JPanel(new GridLayout(0, 2, 10, 10));
+        formPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        gbc.gridx = 0; gbc.gridy = 5; painel.add(new JLabel("Gerente Responsável:"), gbc);
-        gbc.gridx = 1; 
+        // Campos do formulário
+        formPanel.add(new JLabel("Nome:"));
+        campoNome = new JTextField();
+        formPanel.add(campoNome);
+
+        formPanel.add(new JLabel("Descrição:"));
+        campoDescricao = new JTextArea(3, 20);
+        JScrollPane scrollDescricao = new JScrollPane(campoDescricao);
+        formPanel.add(scrollDescricao);
+
+        formPanel.add(new JLabel("Data Início (dd/MM/yyyy):"));
         try {
-            comboGerente = new JComboBox<>(new UsuarioDAO().buscarGerentes().toArray(new Usuario[0]));
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Erro ao carregar gerentes: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
+            campoDataInicio = new JFormattedTextField(new SimpleDateFormat("dd/MM/yyyy"));
+            campoDataInicio.setColumns(10);
+        } catch (IllegalArgumentException e) {
+            campoDataInicio = new JFormattedTextField();
         }
-        painel.add(comboGerente, gbc);
+        formPanel.add(campoDataInicio);
 
-        gbc.gridx = 0; gbc.gridy = 6; painel.add(new JLabel("Equipe Responsável:"), gbc);
-        gbc.gridx = 1; comboEquipe = new JComboBox<>();
-        painel.add(comboEquipe, gbc);
+        formPanel.add(new JLabel("Data Término (dd/MM/yyyy):"));
+        try {
+            campoDataTermino = new JFormattedTextField(new SimpleDateFormat("dd/MM/yyyy"));
+            campoDataTermino.setColumns(10);
+        } catch (IllegalArgumentException e) {
+            campoDataTermino = new JFormattedTextField();
+        }
+        formPanel.add(campoDataTermino);
 
-        comboGerente.addActionListener(e -> {
-            Usuario gerenteSelecionado = (Usuario) comboGerente.getSelectedItem();
-            if (gerenteSelecionado != null) {
-                carregarEquipesPorGerente(gerenteSelecionado.getIdUsuario());
-            }
-        });
+        formPanel.add(new JLabel("Status:"));
+        String[] statusOptions = {"Em Andamento", "Concluído", "Pendente", "Cancelado"};
+        campoStatus = new JComboBox<>(statusOptions);
+        formPanel.add(campoStatus);
 
-        JPanel painelBotoes = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        botaoSalvar = new JButton("Salvar");
-        botaoCancelar = new JButton("Cancelar");
-        painelBotoes.add(botaoSalvar);
-        painelBotoes.add(botaoCancelar);
+        formPanel.add(new JLabel("Gerente:"));
+        campoGerente = new JComboBox<>();
+        carregarUsuarios();
+        formPanel.add(campoGerente);
 
-        botaoSalvar.addActionListener(e -> salvarProjeto());
-        botaoCancelar.addActionListener(e -> dispose());
-
-        add(painel, BorderLayout.CENTER);
-        add(painelBotoes, BorderLayout.SOUTH);
+        formPanel.add(new JLabel("Equipe:"));
+        campoEquipe = new JComboBox<>();
+        carregarEquipes();
+        formPanel.add(campoEquipe);
         
-        Usuario gerenteInicial = (Usuario) comboGerente.getSelectedItem();
-        if (gerenteInicial != null) {
-            carregarEquipesPorGerente(gerenteInicial.getIdUsuario());
+        add(formPanel, BorderLayout.CENTER);
+
+        // Botões
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+        botaoSalvar = new JButton("Salvar");
+        botaoSalvar.addActionListener(e -> salvarProjeto());
+        botaoCancelar = new JButton("Cancelar");
+        botaoCancelar.addActionListener(e -> dispose());
+        buttonPanel.add(botaoSalvar);
+        buttonPanel.add(botaoCancelar);
+        add(buttonPanel, BorderLayout.SOUTH);
+        
+        if (this.projeto != null) {
+            preencherCampos();
+            setTitle("Editar Projeto");
+        } else {
+            setTitle("Novo Projeto");
         }
     }
 
-    // Construtor para edição
-    public ProjetoFormView(JFrame parent, Projeto projeto) {
-        this(parent);
-        this.projetoParaEdicao = projeto;
-        
+    private void carregarUsuarios() {
+        try {
+            UsuarioDAO usuarioDAO = new UsuarioDAO();
+            List<Usuario> usuarios = usuarioDAO.buscarTodos();
+            for (Usuario u : usuarios) {
+                campoGerente.addItem(u);
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Erro ao carregar gerentes: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void carregarEquipes() {
+        try {
+            EquipeDAO equipeDAO = new EquipeDAO();
+            List<Equipe> equipes = equipeDAO.buscarTodos();
+            for (Equipe eq : equipes) {
+                campoEquipe.addItem(eq);
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Erro ao carregar equipes: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    private void preencherCampos() {
         campoNome.setText(projeto.getNome());
         campoDescricao.setText(projeto.getDescricao());
-        campoDataInicio.setDate(projeto.getDataInicio());
-        campoDataTerminoPrevista.setDate(projeto.getDataTerminoPrevista());
-        comboStatus.setSelectedItem(projeto.getStatus());
-        
-        comboGerente.setSelectedItem(projeto.getGerenteResponsavel());
-        comboEquipe.setSelectedItem(projeto.getEquipeResponsavel());
-        
-        setTitle("Editar Projeto");
-        botaoSalvar.setText("Atualizar");
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
+        campoDataInicio.setText(dateFormat.format(projeto.getDataInicio()));
+        campoDataTermino.setText(dateFormat.format(projeto.getDataTerminoPrevista()));
+        campoStatus.setSelectedItem(projeto.getStatus());
+        campoGerente.setSelectedItem(projeto.getGerenteResponsavel());
+        campoEquipe.setSelectedItem(projeto.getEquipeResponsavel());
     }
 
     private void salvarProjeto() {
         try {
-            ProjetoDAO dao = new ProjetoDAO();
+            ProjetoDAO projetoDAO = new ProjetoDAO();
+            SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
             
-            if (projetoParaEdicao != null) {
-                projetoParaEdicao.setNome(campoNome.getText());
-                projetoParaEdicao.setDescricao(campoDescricao.getText());
-                projetoParaEdicao.setDataInicio(campoDataInicio.getDate());
-                projetoParaEdicao.setDataTerminoPrevista(campoDataTerminoPrevista.getDate());
-                projetoParaEdicao.setStatus((String) comboStatus.getSelectedItem());
-                projetoParaEdicao.setGerenteResponsavel((Usuario) comboGerente.getSelectedItem());
-                projetoParaEdicao.setEquipeResponsavel((Equipe) comboEquipe.getSelectedItem());
-                
-                dao.atualizar(projetoParaEdicao);
-                JOptionPane.showMessageDialog(this, "Projeto atualizado com sucesso!");
-            } else {
-                Projeto novoProjeto = new Projeto();
-                novoProjeto.setNome(campoNome.getText());
-                novoProjeto.setDescricao(campoDescricao.getText());
-                novoProjeto.setDataInicio(campoDataInicio.getDate());
-                novoProjeto.setDataTerminoPrevista(campoDataTerminoPrevista.getDate());
-                novoProjeto.setStatus((String) comboStatus.getSelectedItem());
-                novoProjeto.setGerenteResponsavel((Usuario) comboGerente.getSelectedItem());
-                novoProjeto.setEquipeResponsavel((Equipe) comboEquipe.getSelectedItem());
-                
-                dao.salvar(novoProjeto);
-                JOptionPane.showMessageDialog(this, "Projeto salvo com sucesso!");
+            // Cria ou atualiza o objeto Projeto
+            if (this.projeto == null) {
+                this.projeto = new Projeto();
             }
-
-            dispose();
-        } catch (SQLException ex) {
-            JOptionPane.showMessageDialog(this, "Erro ao salvar projeto: Verifique os dados e a conexão.", "Erro", JOptionPane.ERROR_MESSAGE);
-            ex.printStackTrace();
-        }
-    }
-    
-    private void carregarEquipesPorGerente(int idGerente) {
-        try {
-            List<Equipe> equipes = new EquipeDAO().buscarPorGerenteId(idGerente);
             
-            comboEquipe.removeAllItems();
-            for (Equipe equipe : equipes) {
-                comboEquipe.addItem(equipe);
+            this.projeto.setNome(campoNome.getText());
+            this.projeto.setDescricao(campoDescricao.getText());
+            this.projeto.setDataInicio(dateFormat.parse(campoDataInicio.getText()));
+            this.projeto.setDataTerminoPrevista(dateFormat.parse(campoDataTermino.getText()));
+            this.projeto.setStatus((String) campoStatus.getSelectedItem());
+            this.projeto.setGerenteResponsavel((Usuario) campoGerente.getSelectedItem());
+            this.projeto.setEquipeResponsavel((Equipe) campoEquipe.getSelectedItem());
+            
+            if (this.projeto.getIdProjeto() == 0) { // É um novo projeto
+                projetoDAO.salvar(this.projeto);
+                JOptionPane.showMessageDialog(this, "Projeto salvo com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+            } else { // É uma atualização
+                projetoDAO.atualizar(this.projeto);
+                JOptionPane.showMessageDialog(this, "Projeto atualizado com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
             }
+            
+            // Recarrega a tabela na tela principal
+            projetoView.carregarProjetos();
+            dispose(); // Fecha o diálogo
+            
+        } catch (ParseException e) {
+            JOptionPane.showMessageDialog(this, "Erro de formato de data. Use o formato dd/MM/yyyy.", "Erro", JOptionPane.ERROR_MESSAGE);
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Erro ao carregar equipes do gerente.", "Erro", JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Erro ao salvar o projeto: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
         }
     }
 }
