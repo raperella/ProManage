@@ -25,22 +25,22 @@ public class MainFrame extends JFrame {
         JMenuBar menuBar = new JMenuBar();
         JMenu menuProjetos = new JMenu("Projetos");
         JMenu menuEquipes = new JMenu("Equipes");
-        JMenu menuTarefas = new JMenu("Tarefas");
+//        JMenu menuTarefas = new JMenu("Tarefas");
 
         // Cria os itens de menu
         JMenuItem itemGerenciarProjetos = new JMenuItem("Gerenciar Projetos");
         JMenuItem itemGerenciarEquipes = new JMenuItem("Gerenciar Equipes");
-        JMenuItem itemGerenciarTarefas = new JMenuItem("Gerenciar Tarefas");
+//        JMenuItem itemGerenciarTarefas = new JMenuItem("Gerenciar Tarefas");
 
         // Adiciona os itens aos menus
         menuProjetos.add(itemGerenciarProjetos);
         menuEquipes.add(itemGerenciarEquipes);
-        menuTarefas.add(itemGerenciarTarefas);
+//        menuTarefas.add(itemGerenciarTarefas);
 
         // Adiciona os menus à barra de menu
         menuBar.add(menuProjetos);
         menuBar.add(menuEquipes);
-        menuBar.add(menuTarefas);
+//        menuBar.add(menuTarefas);
         
         setJMenuBar(menuBar);
 
@@ -58,7 +58,7 @@ public class MainFrame extends JFrame {
         // Adiciona a lógica de navegação aos itens do menu
         itemGerenciarProjetos.addActionListener(e -> mostrarPainel("Projetos"));
         itemGerenciarEquipes.addActionListener(e -> mostrarPainel("Equipes"));
-        itemGerenciarTarefas.addActionListener(e -> mostrarPainel("Tarefas"));
+//        itemGerenciarTarefas.addActionListener(e -> mostrarPainel("Tarefas"));
 
         setVisible(true);
     }
