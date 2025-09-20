@@ -20,12 +20,23 @@ import java.text.SimpleDateFormat;
 public class DashboardView extends JPanel {
 
     private ProjetoDAO projetoDAO;
+    private JButton botaoAtualizar;
 
     public DashboardView() {
         this.projetoDAO = new ProjetoDAO();
         setLayout(new GridLayout(2, 2, 15, 15));
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
+        botaoAtualizar = new JButton("Atualizar Dados");
+        
+        botaoAtualizar.addActionListener(e -> renderizarDashboard());
+
+        renderizarDashboard();
+    }
+
+    private void renderizarDashboard() {
+        removeAll();
+        
         try {
             // 1. Gráfico de Projetos por Equipe (Gráfico de Pizza)
             Map<String, Long> projetosPorEquipe = projetoDAO.contarProjetosPorEquipe();
@@ -70,14 +81,18 @@ public class DashboardView extends JPanel {
             scrollPane.setBorder(BorderFactory.createTitledBorder("Projetos Vencendo em 7 Dias"));
             add(scrollPane);
             
-            // Adiciona um painel vazio para preencher a grade e manter o layout
-            JPanel emptyPanel = new JPanel();
-            add(emptyPanel);
+            // Adiciona um painel com um FlowLayout para centralizar e redimensionar o botão
+            JPanel painelBotao = new JPanel(new FlowLayout(FlowLayout.CENTER));
+            painelBotao.add(botaoAtualizar);
+            add(painelBotao);
 
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Erro ao carregar dados do dashboard: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
             add(new JLabel("Erro ao carregar dados. Verifique a conexão com o banco."));
         }
+
+        revalidate();
+        repaint();
     }
 }
