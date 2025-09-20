@@ -18,13 +18,14 @@ import java.util.List;
 public class ProjetoFormView extends JDialog {
 
     private final MainFrame mainFrame;
-    private final ProjetoView projetoView; // Referência para a tela principal de projetos
+    private final ProjetoView projetoView;
     private Projeto projeto;
 
     private JTextField campoNome;
     private JTextArea campoDescricao;
     private JFormattedTextField campoDataInicio;
-    private JFormattedTextField campoDataTermino;
+    private JFormattedTextField campoDataTerminoPrevista; // Novo nome da variável
+    private JFormattedTextField campoDataTerminoReal;    // Novo campo
     private JComboBox<String> campoStatus;
     private JComboBox<Usuario> campoGerente;
     private JComboBox<Equipe> campoEquipe;
@@ -43,16 +44,13 @@ public class ProjetoFormView extends JDialog {
         this.projetoView = projetoView;
         this.projeto = projeto;
         
-        // Configurações do diálogo
         setSize(400, 500);
         setLocationRelativeTo(mainFrame);
         setLayout(new BorderLayout(10, 10));
 
-        // Painel de formulário
         JPanel formPanel = new JPanel(new GridLayout(0, 2, 10, 10));
         formPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // Campos do formulário
         formPanel.add(new JLabel("Nome:"));
         campoNome = new JTextField();
         formPanel.add(campoNome);
@@ -70,19 +68,39 @@ public class ProjetoFormView extends JDialog {
             campoDataInicio = new JFormattedTextField();
         }
         formPanel.add(campoDataInicio);
-
-        formPanel.add(new JLabel("Data Término (dd/MM/yyyy):"));
+        
+        // Campo 'Data Término Prevista' renomeado
+        formPanel.add(new JLabel("Data Término Prevista (dd/MM/yyyy):"));
         try {
-            campoDataTermino = new JFormattedTextField(new SimpleDateFormat("dd/MM/yyyy"));
-            campoDataTermino.setColumns(10);
+            campoDataTerminoPrevista = new JFormattedTextField(new SimpleDateFormat("dd/MM/yyyy"));
+            campoDataTerminoPrevista.setColumns(10);
         } catch (IllegalArgumentException e) {
-            campoDataTermino = new JFormattedTextField();
+            campoDataTerminoPrevista = new JFormattedTextField();
         }
-        formPanel.add(campoDataTermino);
+        formPanel.add(campoDataTerminoPrevista);
+        
+        // Novo campo 'Data Término Real'
+        formPanel.add(new JLabel("Data Término Real (dd/MM/yyyy):"));
+        try {
+            campoDataTerminoReal = new JFormattedTextField(new SimpleDateFormat("dd/MM/yyyy"));
+            campoDataTerminoReal.setColumns(10);
+        } catch (IllegalArgumentException e) {
+            campoDataTerminoReal = new JFormattedTextField();
+        }
+        campoDataTerminoReal.setEditable(false); // Por padrão, não editável
+        formPanel.add(campoDataTerminoReal);
 
         formPanel.add(new JLabel("Status:"));
         String[] statusOptions = {"Em Andamento", "Concluído", "Pendente", "Cancelado"};
         campoStatus = new JComboBox<>(statusOptions);
+        // Adiciona um listener para habilitar o campo de 'Data Término Real'
+        campoStatus.addActionListener(e -> {
+            boolean isConcluido = "Concluído".equals(campoStatus.getSelectedItem());
+            campoDataTerminoReal.setEditable(isConcluido);
+            if (!isConcluido) {
+                campoDataTerminoReal.setText("");
+            }
+        });
         formPanel.add(campoStatus);
 
         formPanel.add(new JLabel("Gerente:"));
@@ -97,7 +115,6 @@ public class ProjetoFormView extends JDialog {
         
         add(formPanel, BorderLayout.CENTER);
 
-        // Botões
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
         botaoSalvar = new JButton("Salvar");
         botaoSalvar.addActionListener(e -> salvarProjeto());
@@ -144,8 +161,20 @@ public class ProjetoFormView extends JDialog {
         campoDescricao.setText(projeto.getDescricao());
         SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
         campoDataInicio.setText(dateFormat.format(projeto.getDataInicio()));
-        campoDataTermino.setText(dateFormat.format(projeto.getDataTerminoPrevista()));
+        
+        // Preenche o campo de Data Término Prevista
+        campoDataTerminoPrevista.setText(dateFormat.format(projeto.getDataTerminoPrevista()));
+        campoDataTerminoPrevista.setEditable(false); // Desabilita edição
+        
+        // Preenche o campo de Data Término Real, se existir
+        if (projeto.getDataTermino() != null) {
+            campoDataTerminoReal.setText(dateFormat.format(projeto.getDataTermino()));
+        }
+        
         campoStatus.setSelectedItem(projeto.getStatus());
+        boolean isConcluido = "Concluído".equals(projeto.getStatus());
+        campoDataTerminoReal.setEditable(isConcluido);
+        
         campoGerente.setSelectedItem(projeto.getGerenteResponsavel());
         campoEquipe.setSelectedItem(projeto.getEquipeResponsavel());
     }
@@ -155,7 +184,6 @@ public class ProjetoFormView extends JDialog {
             ProjetoDAO projetoDAO = new ProjetoDAO();
             SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
             
-            // Cria ou atualiza o objeto Projeto
             if (this.projeto == null) {
                 this.projeto = new Projeto();
             }
@@ -163,22 +191,31 @@ public class ProjetoFormView extends JDialog {
             this.projeto.setNome(campoNome.getText());
             this.projeto.setDescricao(campoDescricao.getText());
             this.projeto.setDataInicio(dateFormat.parse(campoDataInicio.getText()));
-            this.projeto.setDataTerminoPrevista(dateFormat.parse(campoDataTermino.getText()));
+            
+            // Salva a 'Data Término Prevista'
+            this.projeto.setDataTerminoPrevista(dateFormat.parse(campoDataTerminoPrevista.getText()));
+            
+            // Salva a 'Data Término Real' apenas se o campo estiver preenchido
+            if (campoDataTerminoReal.isEditable() && !campoDataTerminoReal.getText().isEmpty()) {
+                this.projeto.setDataTermino(dateFormat.parse(campoDataTerminoReal.getText()));
+            } else {
+                this.projeto.setDataTermino(null);
+            }
+            
             this.projeto.setStatus((String) campoStatus.getSelectedItem());
             this.projeto.setGerenteResponsavel((Usuario) campoGerente.getSelectedItem());
             this.projeto.setEquipeResponsavel((Equipe) campoEquipe.getSelectedItem());
             
-            if (this.projeto.getIdProjeto() == 0) { // É um novo projeto
+            if (this.projeto.getIdProjeto() == 0) { // Novo projeto
                 projetoDAO.salvar(this.projeto);
                 JOptionPane.showMessageDialog(this, "Projeto salvo com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
-            } else { // É uma atualização
+            } else { // Atualização
                 projetoDAO.atualizar(this.projeto);
                 JOptionPane.showMessageDialog(this, "Projeto atualizado com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
             }
             
-            // Recarrega a tabela na tela principal
             projetoView.carregarProjetos();
-            dispose(); // Fecha o diálogo
+            dispose();
             
         } catch (ParseException e) {
             JOptionPane.showMessageDialog(this, "Erro de formato de data. Use o formato dd/MM/yyyy.", "Erro", JOptionPane.ERROR_MESSAGE);

@@ -9,6 +9,7 @@ public class Projeto {
     private String descricao;
     private Date dataInicio;
     private Date dataTerminoPrevista;
+    private Date dataTermino; // Campo adicionado para a data de término real
     private String status;
     private Usuario gerenteResponsavel;
     private Equipe equipeResponsavel;
@@ -71,6 +72,15 @@ public class Projeto {
 
     public void setDataTerminoPrevista(Date dataTerminoPrevista) {
         this.dataTerminoPrevista = dataTerminoPrevista;
+    }
+
+    // Novos métodos Getters e Setters para a data de término real
+    public Date getDataTermino() {
+        return dataTermino;
+    }
+
+    public void setDataTermino(Date dataTermino) {
+        this.dataTermino = dataTermino;
     }
 
     public String getStatus() {

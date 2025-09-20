@@ -29,7 +29,8 @@ public class ProjetoView extends JPanel {
         setLayout(new BorderLayout());
 
         // Configuração da tabela
-        tableModel = new DefaultTableModel(new Object[]{"ID", "Nome", "Descrição", "Data Início", "Data Término", "Status", "Gerente", "Equipe"}, 0);
+        // Colunas atualizadas para incluir a 'Data Término Real' e renomear 'Data Término' para 'Data Término Prevista'
+        tableModel = new DefaultTableModel(new Object[]{"ID", "Nome", "Descrição", "Data Início", "Data Término Prevista", "Data Término", "Status", "Gerente", "Equipe"}, 0);
         tabelaProjetos = new JTable(tableModel);
         scrollPane = new JScrollPane(tabelaProjetos);
         add(scrollPane, BorderLayout.CENTER);
@@ -107,12 +108,14 @@ public class ProjetoView extends JPanel {
             SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
 
             for (Projeto projeto : projetos) {
+                // Adiciona uma nova coluna para 'Data Término Real'
                 tableModel.addRow(new Object[]{
                     projeto.getIdProjeto(),
                     projeto.getNome(),
                     projeto.getDescricao(),
                     dateFormat.format(projeto.getDataInicio()),
                     dateFormat.format(projeto.getDataTerminoPrevista()),
+                    projeto.getDataTermino() != null ? dateFormat.format(projeto.getDataTermino()) : "N/A",
                     projeto.getStatus(),
                     projeto.getGerenteResponsavel().getNomeCompleto(),
                     projeto.getEquipeResponsavel().getNome()
