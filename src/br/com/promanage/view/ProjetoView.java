@@ -4,6 +4,7 @@ import br.com.promanage.dao.ProjetoDAO;
 import br.com.promanage.model.Projeto;
 
 import javax.swing.*;
+import javax.swing.event.ListSelectionEvent;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.sql.SQLException;
@@ -14,7 +15,8 @@ public class ProjetoView extends JPanel {
 
     private JButton botaoAdicionar;
     private JButton botaoEditar;
-    private JButton botaoExcluir;
+//    private JButton botaoExcluir;
+    private JButton botaoVerTarefas; // Novo botão para ver tarefas
     private JButton botaoVoltar;
     private JTable tabelaProjetos;
     private JScrollPane scrollPane;
@@ -29,11 +31,18 @@ public class ProjetoView extends JPanel {
         setLayout(new BorderLayout());
 
         // Configuração da tabela
-        // Colunas atualizadas para incluir a 'Data Término Real' e renomear 'Data Término' para 'Data Término Prevista'
         tableModel = new DefaultTableModel(new Object[]{"ID", "Nome", "Descrição", "Data Início", "Data Término Prevista", "Data Término", "Status", "Gerente", "Equipe"}, 0);
         tabelaProjetos = new JTable(tableModel);
         scrollPane = new JScrollPane(tabelaProjetos);
         add(scrollPane, BorderLayout.CENTER);
+        
+        // Adiciona um listener para habilitar/desabilitar o botão de tarefas
+        tabelaProjetos.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                boolean linhaSelecionada = tabelaProjetos.getSelectedRow() != -1;
+                botaoVerTarefas.setEnabled(linhaSelecionada);
+            }
+        });
 
         // Painel para os botões na parte inferior
         JPanel painelBotoes = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
@@ -63,26 +72,45 @@ public class ProjetoView extends JPanel {
             }
         });
         
-        botaoExcluir = new JButton("Excluir Selecionado");
-        botaoExcluir.addActionListener(e -> {
+//        botaoExcluir = new JButton("Excluir Selecionado");
+//        botaoExcluir.addActionListener(e -> {
+//            int linhaSelecionada = tabelaProjetos.getSelectedRow();
+//            if (linhaSelecionada >= 0) {
+//                int opcao = JOptionPane.showConfirmDialog(this, "Tem certeza que deseja excluir este projeto?", "Confirmação de Exclusão", JOptionPane.YES_NO_OPTION);
+//                if (opcao == JOptionPane.YES_OPTION) {
+//                    int idProjeto = (int) tabelaProjetos.getValueAt(linhaSelecionada, 0);
+//                    try {
+//                        new ProjetoDAO().deletar(idProjeto);
+//                        JOptionPane.showMessageDialog(this, "Projeto excluído com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+//                        carregarProjetos();
+//                    } catch (SQLException ex) {
+//                        JOptionPane.showMessageDialog(this, "Erro ao excluir projeto: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+//                    }
+//                }
+//            } else {
+//                JOptionPane.showMessageDialog(this, "Selecione um projeto para excluir.", "Aviso", JOptionPane.WARNING_MESSAGE);
+//            }
+//        });
+
+        // Configuração do novo botão "Ver Tarefas"
+        botaoVerTarefas = new JButton("Ver Tarefas");
+        botaoVerTarefas.setEnabled(false); // Desabilitado por padrão
+        botaoVerTarefas.addActionListener(e -> {
             int linhaSelecionada = tabelaProjetos.getSelectedRow();
             if (linhaSelecionada >= 0) {
-                int opcao = JOptionPane.showConfirmDialog(this, "Tem certeza que deseja excluir este projeto?", "Confirmação de Exclusão", JOptionPane.YES_NO_OPTION);
-                if (opcao == JOptionPane.YES_OPTION) {
-                    int idProjeto = (int) tabelaProjetos.getValueAt(linhaSelecionada, 0);
-                    try {
-                        new ProjetoDAO().deletar(idProjeto);
-                        JOptionPane.showMessageDialog(this, "Projeto excluído com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
-                        carregarProjetos();
-                    } catch (SQLException ex) {
-                        JOptionPane.showMessageDialog(this, "Erro ao excluir projeto: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+                int idProjeto = (int) tabelaProjetos.getValueAt(linhaSelecionada, 0);
+                try {
+                    Projeto projetoSelecionado = new ProjetoDAO().buscarPorId(idProjeto);
+                    if (projetoSelecionado != null) {
+                        // Navega para a nova tela de tarefas
+                        mainFrame.mostrarPainel("Tarefas", projetoSelecionado);
                     }
+                } catch (SQLException ex) {
+                    JOptionPane.showMessageDialog(this, "Erro ao buscar o projeto: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
                 }
-            } else {
-                JOptionPane.showMessageDialog(this, "Selecione um projeto para excluir.", "Aviso", JOptionPane.WARNING_MESSAGE);
             }
         });
-
+        
         botaoVoltar = new JButton("Voltar");
         botaoVoltar.addActionListener(e -> {
             mainFrame.mostrarPainel("Dashboard");
@@ -90,8 +118,9 @@ public class ProjetoView extends JPanel {
 
         painelBotoes.add(botaoAdicionar);
         painelBotoes.add(botaoEditar);
-        painelBotoes.add(botaoExcluir);
-        painelBotoes.add(botaoVoltar); // Adiciona o novo botão
+//        painelBotoes.add(botaoExcluir);
+        painelBotoes.add(botaoVerTarefas); // Adiciona o novo botão
+        painelBotoes.add(botaoVoltar);
 
         add(painelBotoes, BorderLayout.SOUTH);
         
@@ -108,7 +137,6 @@ public class ProjetoView extends JPanel {
             SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
 
             for (Projeto projeto : projetos) {
-                // Adiciona uma nova coluna para 'Data Término Real'
                 tableModel.addRow(new Object[]{
                     projeto.getIdProjeto(),
                     projeto.getNome(),

@@ -1,5 +1,7 @@
 package br.com.promanage.view;
 
+import br.com.promanage.model.Projeto;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionListener;
@@ -61,9 +63,35 @@ public class MainFrame extends JFrame {
         setVisible(true);
     }
     
-    // Método para alternar entre os painéis
+    // Método para alternar entre os painéis (existente)
     public void mostrarPainel(String nomePainel) {
         cardLayout.show(contentPanel, nomePainel);
+    }
+
+    // NOVO MÉTODO: Alterna para a tela de tarefas passando o projeto
+    public void mostrarPainel(String nomePainel, Projeto projeto) {
+        if ("Tarefas".equals(nomePainel)) {
+            // Cria uma nova instância da tela de tarefas
+            TarefaView tarefasView = new TarefaView(this, projeto);
+            
+            // Remove o painel antigo de tarefas (se existir) para evitar duplicação
+            if (contentPanel.getComponentCount() > 0) {
+                // Percorre os componentes para encontrar o painel de tarefas e removê-lo
+                for (Component comp : contentPanel.getComponents()) {
+                    if (comp instanceof TarefaView) {
+                        contentPanel.remove(comp);
+                        break;
+                    }
+                }
+            }
+            
+            // Adiciona a nova tela de tarefas
+            contentPanel.add(tarefasView, nomePainel);
+            cardLayout.show(contentPanel, nomePainel);
+        } else {
+            // Usa o método original para os outros painéis
+            mostrarPainel(nomePainel);
+        }
     }
 
     public static void main(String[] args) {

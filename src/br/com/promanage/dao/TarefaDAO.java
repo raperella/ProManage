@@ -35,6 +35,79 @@ public class TarefaDAO {
         }
     }
     
+    // NOVO MÉTODO: Atualiza uma tarefa existente no banco de dados
+    public void atualizar(Tarefa tarefa) throws SQLException {
+        String sql = "UPDATE tarefas SET titulo = ?, descricao = ?, responsavel_id = ?, status = ?, data_inicio_prevista = ?, data_fim_prevista = ?, data_inicio_real = ?, data_fim_real = ? WHERE id_tarefa = ?";
+        
+        try (Connection conn = Conexao.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, tarefa.getTitulo());
+            stmt.setString(2, tarefa.getDescricao());
+            stmt.setInt(3, tarefa.getResponsavel().getIdUsuario());
+            stmt.setString(4, tarefa.getStatus());
+            stmt.setDate(5, new java.sql.Date(tarefa.getDataInicioPrevista().getTime()));
+            stmt.setDate(6, new java.sql.Date(tarefa.getDataFimPrevista().getTime()));
+            stmt.setDate(7, tarefa.getDataInicioReal() != null ? new java.sql.Date(tarefa.getDataInicioReal().getTime()) : null);
+            stmt.setDate(8, tarefa.getDataFimReal() != null ? new java.sql.Date(tarefa.getDataFimReal().getTime()) : null);
+            stmt.setInt(9, tarefa.getIdTarefa());
+
+            stmt.executeUpdate();
+        }
+    }
+
+    // NOVO MÉTODO: Deleta uma tarefa do banco de dados
+    public void deletar(int idTarefa) throws SQLException {
+        String sql = "DELETE FROM tarefas WHERE id_tarefa = ?";
+        
+        try (Connection conn = Conexao.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, idTarefa);
+            stmt.executeUpdate();
+        }
+    }
+
+    public Tarefa buscarPorId(int idTarefa) throws SQLException {
+        String sql = "SELECT t.*, p.nome as nome_projeto, u.nome_completo as nome_responsavel FROM tarefas t " +
+                     "JOIN projetos p ON t.projeto_id = p.id_projeto " +
+                     "JOIN usuarios u ON t.responsavel_id = u.id_usuario " +
+                     "WHERE t.id_tarefa = ?";
+        
+        try (Connection conn = Conexao.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, idTarefa);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    Tarefa tarefa = new Tarefa();
+                    tarefa.setIdTarefa(rs.getInt("id_tarefa"));
+                    tarefa.setTitulo(rs.getString("titulo"));
+                    tarefa.setDescricao(rs.getString("descricao"));
+                    tarefa.setStatus(rs.getString("status"));
+                    tarefa.setDataInicioPrevista(rs.getDate("data_inicio_prevista"));
+                    tarefa.setDataFimPrevista(rs.getDate("data_fim_prevista"));
+                    tarefa.setDataInicioReal(rs.getDate("data_inicio_real"));
+                    tarefa.setDataFimReal(rs.getDate("data_fim_real"));
+                    
+                    Projeto projeto = new Projeto();
+                    projeto.setIdProjeto(rs.getInt("projeto_id"));
+                    projeto.setNome(rs.getString("nome_projeto"));
+                    tarefa.setProjetoVinculado(projeto);
+                    
+                    Usuario responsavel = new Usuario();
+                    responsavel.setIdUsuario(rs.getInt("responsavel_id"));
+                    responsavel.setNomeCompleto(rs.getString("nome_responsavel"));
+                    tarefa.setResponsavel(responsavel);
+                    
+                    return tarefa;
+                }
+            }
+        }
+        return null;
+    }
+    
     // Método para buscar todas as tarefas de um projeto específico
     public List<Tarefa> buscarPorProjetoId(int projetoId) throws SQLException {
         String sql = "SELECT t.*, p.nome as nome_projeto, u.nome_completo as nome_responsavel FROM tarefas t " +
@@ -60,7 +133,6 @@ public class TarefaDAO {
                     tarefa.setDataInicioReal(rs.getDate("data_inicio_real"));
                     tarefa.setDataFimReal(rs.getDate("data_fim_real"));
                     
-                    // Constrói os objetos de relacionamento
                     Projeto projeto = new Projeto();
                     projeto.setIdProjeto(rs.getInt("projeto_id"));
                     projeto.setNome(rs.getString("nome_projeto"));
